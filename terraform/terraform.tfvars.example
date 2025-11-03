@@ -1,0 +1,41 @@
+# Example Terraform variables file
+# Copy this file to terraform.tfvars and update the values
+
+# Required: Your GCP project ID
+project_id = "your-gcp-project-id"
+
+# Optional: Deployment region (default: us-central1)
+region = "us-central1"
+
+# Optional: Service configuration
+service_name    = "hierarchical-agent-api"
+repository_name = "hierarchical-agent-repo"
+image_name      = "hierarchical-agent-api"
+image_tag       = "latest"
+
+# Optional: Scaling configuration
+min_instances = 0
+max_instances = 10
+
+# Optional: Resource limits
+cpu_limit    = "2"
+memory_limit = "4Gi"
+cpu_idle     = true
+
+# Optional: Environment configuration
+log_level   = "INFO"
+environment = "dev"
+
+# Optional: Access configuration
+allow_public_access = true
+
+# Optional: Custom domain (leave empty if not using)
+custom_domain = ""
+
+# Optional: Resource labels
+labels = {
+  application = "hierarchical-agent-api"
+  environment = "dev"
+  managed-by  = "terraform"
+  team        = "ai-platform"
+}

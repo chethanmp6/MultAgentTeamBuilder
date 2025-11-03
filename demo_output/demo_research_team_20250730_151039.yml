@@ -1,0 +1,319 @@
+team:
+  name: Demo Research Team
+  description: A demonstration hierarchical team for research and content creation
+  type: simple_hierarchical
+  version: 1.0.0
+  created: '2025-07-30T15:10:39.133401'
+  generator: simple_template_generator
+architecture:
+  pattern: supervisor_workers
+  description: One supervisor coordinates multiple worker agents
+  supervisor_count: 1
+  worker_count: 3
+  total_agents: 4
+supervisor:
+  name: Web Content Team Coordinator
+  description: Coordinates between web browser and writer agents for comprehensive
+    content creation
+  agent_id: web_content_team
+  config_file: configs/examples/web_content_team.yml
+  role: supervisor
+  capabilities:
+  - web_search
+  - coordination
+  - writing
+  - file_operations
+  tools:
+  - web_search
+  - file_reader
+  - file_writer
+  llm:
+    provider: openai
+    model: gpt-4o-mini
+    temperature: 0.4
+    max_tokens: 3000
+    api_key_env: OPENAI_API_KEY
+  prompts:
+    system_prompt:
+      template: 'You are Web Content Team Coordinator, a supervisor agent managing
+        a team of specialized workers.
+
+
+        Your Role:
+
+        - Analyze incoming user requests
+
+        - Route tasks to the most suitable worker based on their capabilities
+
+        - Coordinate between workers when needed
+
+        - Provide final responses to users
+
+        - Monitor team performance and workflow
+
+
+        Your Capabilities: web_search, coordination, writing, file_operations
+
+
+        Available Workers and their specializations: {worker_capabilities}
+
+
+        Guidelines:
+
+        1. Always analyze the user request to understand what type of task it is
+
+        2. Match tasks to workers based on their capabilities and specializations
+
+        3. If a task requires multiple workers, coordinate the workflow
+
+        4. If no worker is suitable, handle the task yourself if possible
+
+        5. Always provide clear, helpful responses to users
+
+        6. Learn from past interactions to improve routing decisions
+
+
+        Current Context: {task_context}
+
+        Previous Interactions: {memory_context}
+
+
+        User Request: {user_input}
+
+
+        Analyze this request and either:
+
+        1. Route it to the appropriate worker with clear instructions
+
+        2. Handle it yourself if you''re best suited
+
+        3. Ask for clarification if the request is ambiguous'
+      variables:
+      - user_input
+      - worker_capabilities
+      - task_context
+      - memory_context
+    routing_prompt:
+      template: 'Analyze the user request and decide which worker should handle it.
+
+
+        User Request: {user_request}
+
+
+        Available Workers:
+
+        {available_workers}
+
+
+        Worker Specializations:
+
+        {worker_specializations}
+
+
+        Consider:
+
+        1. Which worker''s capabilities best match the request?
+
+        2. Which worker''s specializations are most relevant?
+
+        3. Are there any workers currently overloaded?
+
+        4. Does this task require specific tools or knowledge?
+
+
+        Provide your routing decision with reasoning.'
+      variables:
+      - user_request
+      - available_workers
+      - worker_specializations
+  routing:
+    strategy: capability_based
+    fallback_strategy: round_robin
+    decision_threshold: 0.7
+    max_retries: 2
+  memory:
+    enabled: true
+    provider: langmem
+    types:
+      episodic: true
+      semantic: true
+      procedural: true
+    retention_days: 30
+workers:
+- name: Coding Assistant
+  description: AI agent specialized in software development and programming tasks
+  agent_id: coding_assistant
+  config_file: configs/examples/coding_assistant.yml
+  role: worker
+  capabilities:
+  - writing
+  - code_generation
+  - file_operations
+  tools:
+  - file_reader
+  - file_writer
+  - code_executor
+  specializations: []
+  llm:
+    provider: anthropic
+    model: claude-3-5-sonnet-20241022
+    temperature: 0.1
+    max_tokens: 4000
+    api_key_env: ANTHROPIC_API_KEY
+  performance:
+    timeout_seconds: 120
+    retry_attempts: 2
+    priority: 1
+    max_concurrent_tasks: 1
+  memory:
+    enabled: true
+    provider: langmem
+    types:
+      episodic: true
+      semantic: true
+    retention_days: 15
+- name: Groq Coding Assistant
+  description: AI agent powered by Groq's fast LLMs for coding tasks
+  agent_id: groq_agent
+  config_file: configs/examples/groq_agent.yml
+  role: worker
+  capabilities:
+  - writing
+  - calculator
+  - code_generation
+  - file_operations
+  tools:
+  - file_reader
+  - file_writer
+  - code_executor
+  - calculator
+  specializations: []
+  llm:
+    provider: groq
+    model: meta-llama/llama-4-scout-17b-16e-instruct
+    temperature: 0.1
+    max_tokens: 4000
+    api_key_env: GROQ_API_KEY
+  performance:
+    timeout_seconds: 120
+    retry_attempts: 2
+    priority: 1
+    max_concurrent_tasks: 1
+  memory:
+    enabled: true
+    provider: langmem
+    types:
+      episodic: true
+      semantic: true
+    retention_days: 15
+- name: Web Browser Agent
+  description: AI agent specialized in web browsing, search, and online information
+    gathering
+  agent_id: web_browser_agent
+  config_file: configs/examples/web_browser_agent.yml
+  role: worker
+  capabilities:
+  - web_search
+  - file_operations
+  - writing
+  - research
+  - communication
+  tools:
+  - web_search
+  - file_reader
+  - file_writer
+  specializations:
+  - web_browser
+  - web_search
+  - information_gathering
+  - source_verification
+  - fact_checking
+  - link_extraction
+  llm:
+    provider: openai
+    model: gpt-4o-mini
+    temperature: 0.2
+    max_tokens: 2500
+    api_key_env: OPENAI_API_KEY
+  performance:
+    timeout_seconds: 120
+    retry_attempts: 2
+    priority: 1
+    max_concurrent_tasks: 1
+  memory:
+    enabled: true
+    provider: langmem
+    types:
+      episodic: true
+      semantic: true
+    retention_days: 15
+coordination:
+  communication:
+    pattern: hub_and_spoke
+    description: Supervisor communicates with all workers directly
+    supervisor_to_workers: direct
+    worker_to_worker: via_supervisor
+    broadcast_enabled: false
+    message_logging: true
+  task_distribution:
+    strategy: intelligent_routing
+    load_balancing: true
+    capability_matching: true
+    workload_consideration: true
+    performance_based: false
+  error_handling:
+    retry_failed_tasks: true
+    max_retry_attempts: 2
+    fallback_to_supervisor: true
+    escalation_threshold: 3
+  monitoring:
+    track_performance: true
+    log_interactions: true
+    measure_response_times: true
+    capability_utilization: true
+runtime:
+  execution:
+    max_concurrent_tasks: 5
+    task_timeout_seconds: 300
+    supervisor_timeout_seconds: 30
+    worker_timeout_seconds: 120
+  resources:
+    memory_limit_mb: 2048
+    cpu_limit_percent: 80
+    max_context_length: 8000
+  logging:
+    enabled: true
+    level: INFO
+    format: structured
+    include_traces: true
+    log_worker_outputs: true
+  debugging:
+    debug_mode: false
+    verbose_logging: false
+    step_by_step_execution: false
+    save_intermediate_results: false
+deployment:
+  environment:
+    name: demoresearchteam_hierarchical_team
+    type: simple_hierarchical
+    auto_scaling: false
+    health_checks: true
+  api:
+    enabled: true
+    host: localhost
+    port: 8000
+    endpoints:
+      chat: /chat
+      status: /status
+      metrics: /metrics
+      health: /health
+  security:
+    authentication: false
+    rate_limiting: true
+    max_requests_per_minute: 60
+    input_validation: true
+  persistence:
+    save_conversations: true
+    save_team_state: true
+    backup_frequency: hourly
+    retention_days: 30

@@ -1,0 +1,1916 @@
+openapi: 3.0.3
+info:
+  title: Hierarchical Agent System API
+  description: |
+    REST API for managing hierarchical agent teams, configurations, and task executions.
+    
+    This API provides comprehensive functionality for:
+    - Creating and managing hierarchical agent teams
+    - Discovering and searching agent libraries
+    - Validating and optimizing team configurations
+    - Executing tasks with real-time monitoring
+    - Performance analytics and team evaluation
+    
+    ## Authentication
+    Currently operates without authentication for development. Production deployments support:
+    - API Key authentication via `X-API-Key` header
+    - JWT Bearer tokens via `Authorization` header
+    
+    ## Rate Limiting
+    - Default: 100 requests/minute per IP
+    - Authenticated: 1000 requests/minute per API key
+    - Execution endpoints: 10 concurrent executions per team
+    
+    ## Error Handling
+    All errors follow RFC 7807 Problem Details format with structured error responses.
+    
+  version: 1.0.0
+  contact:
+    name: Hierarchical Agents Support
+    url: https://github.com/your-org/hierarchical-agents
+    email: support@hierarchical-agents.com
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+  - url: https://api.hierarchical-agents.com
+    description: Production server
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+  - {}
+
+tags:
+  - name: teams
+    description: Hierarchical team management
+  - name: agents
+    description: Agent library and discovery
+  - name: configs
+    description: Configuration management and validation
+  - name: executions
+    description: Task execution and monitoring
+  - name: health
+    description: Health checks and system status
+
+paths:
+  # Health and Status
+  /:
+    get:
+      tags: [health]
+      summary: API Root
+      description: Get basic API information and available endpoints
+      responses:
+        '200':
+          description: API information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Hierarchical Agent System API"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  docs:
+                    type: string
+                    example: "/docs"
+                  redoc:
+                    type: string
+                    example: "/redoc"
+
+  /health:
+    get:
+      tags: [health]
+      summary: Health Check
+      description: Check API health status and basic metrics
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, unhealthy]
+                    example: healthy
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  teams_count:
+                    type: integer
+                    example: 5
+                  active_executions:
+                    type: integer
+                    example: 3
+                  uptime_seconds:
+                    type: number
+                    example: 86400
+
+  # Teams Management
+  /api/v1/teams/:
+    post:
+      tags: [teams]
+      summary: Create Team
+      description: Create a new hierarchical agent team
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamCreateRequest'
+            examples:
+              research_team:
+                summary: Research Team Example
+                value:
+                  name: "Advanced Research Team"
+                  description: "Multi-disciplinary research and analysis team"
+                  config:
+                    coordinator:
+                      routing_strategy: "capability_based"
+                      prompts:
+                        system_prompt:
+                          template: "You are a coordinator managing specialized research teams..."
+                    teams:
+                      - name: "Research Team"
+                        supervisor:
+                          name: "Research Supervisor"
+                          prompts:
+                            system_prompt:
+                              template: "You supervise research tasks and coordinate with multiple researchers..."
+                        workers:
+                          - name: "Senior Researcher"
+                            capabilities: ["research", "analysis", "data_processing"]
+                            tools: ["web_search", "calculator", "file_reader"]
+      responses:
+        '201':
+          description: Team created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    get:
+      tags: [teams]
+      summary: List Teams
+      description: List all teams with pagination and filtering
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of teams to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+        - name: offset
+          in: query
+          description: Number of teams to skip for pagination
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: status
+          in: query
+          description: Filter by team status
+          schema:
+            type: string
+            enum: [active, inactive, error, maintenance]
+        - name: search
+          in: query
+          description: Search in team names and descriptions
+          schema:
+            type: string
+            maxLength: 200
+      responses:
+        '200':
+          description: List of teams
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamListResponse'
+
+  /api/v1/teams/{team_id}:
+    parameters:
+      - $ref: '#/components/parameters/TeamId'
+    
+    get:
+      tags: [teams]
+      summary: Get Team
+      description: Get detailed information about a specific team
+      responses:
+        '200':
+          description: Team details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [teams]
+      summary: Update Team
+      description: Update an existing team configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamUpdateRequest'
+      responses:
+        '200':
+          description: Team updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    delete:
+      tags: [teams]
+      summary: Delete Team
+      description: Delete a team and stop all active executions
+      parameters:
+        - name: force
+          in: query
+          description: Force delete even with active executions
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Team deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamDeleteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/teams/{team_id}/status:
+    parameters:
+      - $ref: '#/components/parameters/TeamId'
+    
+    get:
+      tags: [teams]
+      summary: Get Team Status
+      description: Get real-time team status and performance metrics
+      responses:
+        '200':
+          description: Team status information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamStatusResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Agent Library
+  /api/v1/agents/search:
+    post:
+      tags: [agents]
+      summary: Search Agents
+      description: Search for agents based on capabilities, role, or other criteria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentSearchRequest'
+            examples:
+              capability_search:
+                summary: Search by Capabilities
+                value:
+                  capabilities: ["research", "analysis"]
+                  limit: 10
+              role_search:
+                summary: Search by Role
+                value:
+                  role: "worker"
+                  domain: "research"
+                  min_compatibility: 0.8
+      responses:
+        '200':
+          description: List of matching agents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentListResponse'
+
+  /api/v1/agents/:
+    get:
+      tags: [agents]
+      summary: List Agents
+      description: List all available agents with filtering
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [coordinator, supervisor, worker, specialist]
+        - name: capability
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentListResponse'
+
+  /api/v1/agents/{agent_id}:
+    parameters:
+      - $ref: '#/components/parameters/AgentId'
+    
+    get:
+      tags: [agents]
+      summary: Get Agent Details
+      description: Get detailed information about a specific agent
+      responses:
+        '200':
+          description: Agent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/agents/compatibility:
+    post:
+      tags: [agents]
+      summary: Check Agent Compatibility
+      description: Check compatibility between multiple agents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentCompatibilityRequest'
+      responses:
+        '200':
+          description: Compatibility analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentCompatibilityResponse'
+
+  /api/v1/agents/stats:
+    get:
+      tags: [agents]
+      summary: Get Agent Statistics
+      description: Get statistics about the agent library
+      responses:
+        '200':
+          description: Agent library statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentStatsResponse'
+
+  /api/v1/agents/suggest-team:
+    post:
+      tags: [agents]
+      summary: Suggest Team Composition
+      description: Get team composition suggestions based on requirements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamSuggestionRequest'
+      responses:
+        '200':
+          description: Team composition suggestions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamSuggestionResponse'
+
+  # Configuration Management
+  /api/v1/configs/validate:
+    post:
+      tags: [configs]
+      summary: Validate Configuration
+      description: Validate a hierarchical team configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigValidationRequest'
+      responses:
+        '200':
+          description: Validation results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigValidationResponse'
+
+  /api/v1/configs/upload:
+    post:
+      tags: [configs]
+      summary: Upload Configuration File
+      description: Upload and parse a configuration file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: YAML or JSON configuration file
+                validate:
+                  type: boolean
+                  default: true
+                  description: Auto-validate after upload
+      responses:
+        '200':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigUploadResponse'
+
+  /api/v1/configs/templates:
+    get:
+      tags: [configs]
+      summary: List Templates
+      description: List available configuration templates
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: difficulty
+          in: query
+          schema:
+            type: string
+            enum: [beginner, intermediate, advanced]
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [name, popularity, rating, created_at]
+            default: name
+      responses:
+        '200':
+          description: List of templates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateListResponse'
+
+  /api/v1/configs/templates/{template_id}:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    
+    get:
+      tags: [configs]
+      summary: Get Template Details
+      description: Get detailed template information and configuration
+      responses:
+        '200':
+          description: Template details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/configs/export:
+    post:
+      tags: [configs]
+      summary: Export Configuration
+      description: Export team configuration in various formats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigExportRequest'
+      responses:
+        '200':
+          description: Exported configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigExportResponse'
+
+  # Task Execution
+  /api/v1/executions/{team_id}/execute:
+    parameters:
+      - $ref: '#/components/parameters/TeamId'
+    
+    post:
+      tags: [executions]
+      summary: Execute Task
+      description: Execute a task using a hierarchical team
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionRequest'
+            examples:
+              research_task:
+                summary: Research Task
+                value:
+                  input_text: "Research the latest developments in quantum computing and provide a comprehensive report"
+                  parameters:
+                    priority: "high"
+                    format: "detailed_report"
+                    target_audience: "technical executives"
+                  timeout_seconds: 300
+              content_creation:
+                summary: Content Creation Task
+                value:
+                  input_text: "Write a blog post about sustainable energy trends"
+                  parameters:
+                    word_count: 1500
+                    tone: "informative yet engaging"
+                    target_audience: "general public"
+                  timeout_seconds: 600
+      responses:
+        '202':
+          description: Task execution started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Team busy with maximum concurrent executions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/executions/{execution_id}:
+    parameters:
+      - $ref: '#/components/parameters/ExecutionId'
+    
+    get:
+      tags: [executions]
+      summary: Get Execution Status
+      description: Get execution status and results
+      responses:
+        '200':
+          description: Execution details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionStatusResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/executions/:
+    get:
+      tags: [executions]
+      summary: List Executions
+      description: List executions with filtering and pagination
+      parameters:
+        - name: team_id
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, running, completed, failed, cancelled]
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [started_at, -started_at, duration, -duration, cost, -cost]
+            default: "-started_at"
+      responses:
+        '200':
+          description: List of executions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionListResponse'
+
+  /api/v1/executions/{execution_id}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/ExecutionId'
+    
+    post:
+      tags: [executions]
+      summary: Cancel Execution
+      description: Cancel a running execution
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionCancelRequest'
+      responses:
+        '200':
+          description: Execution cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionCancelResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/executions/{execution_id}/logs:
+    parameters:
+      - $ref: '#/components/parameters/ExecutionId'
+    
+    get:
+      tags: [executions]
+      summary: Get Execution Logs
+      description: Get detailed execution logs
+      parameters:
+        - name: level
+          in: query
+          schema:
+            type: string
+            enum: [debug, info, warn, error]
+            default: info
+        - name: agent
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10000
+            default: 1000
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, text]
+            default: json
+      responses:
+        '200':
+          description: Execution logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionLogsResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/executions/{execution_id}/stream:
+    parameters:
+      - $ref: '#/components/parameters/ExecutionId'
+    
+    get:
+      tags: [executions]
+      summary: Stream Execution Progress
+      description: Stream real-time execution progress via Server-Sent Events
+      responses:
+        '200':
+          description: Server-Sent Events stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: |
+                  event: progress
+                  data: {"percentage": 25, "current_step": "Research phase"}
+                  
+                  event: output
+                  data: {"partial_result": "Based on initial research..."}
+                  
+                  event: completed
+                  data: {"success": true, "final_output": "Complete report..."}
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    TeamId:
+      name: team_id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9_-]+$'
+      description: Unique team identifier
+      example: team_abc123
+
+    AgentId:
+      name: agent_id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9_-]+$'
+      description: Unique agent identifier
+      example: agent_researcher_001
+
+    ExecutionId:
+      name: execution_id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9_-]+$'
+      description: Unique execution identifier
+      example: exec_xyz789
+
+    TemplateId:
+      name: template_id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9_-]+$'
+      description: Unique template identifier
+      example: template_research_pipeline
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid input data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "BAD_REQUEST"
+              message: "Invalid request data"
+              details:
+                field: "config.teams"
+                issue: "At least one team is required"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "NOT_FOUND"
+              message: "Team not found"
+
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "CONFLICT"
+              message: "Team with this name already exists"
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "VALIDATION_ERROR"
+              message: "Configuration validation failed"
+              details:
+                issues:
+                  - severity: "error"
+                    path: "teams[0].workers"
+                    message: "At least one worker is required"
+
+  schemas:
+    # Common Types
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              example: "Request validation failed"
+            details:
+              type: object
+              description: Additional error context
+            timestamp:
+              type: string
+              format: date-time
+            request_id:
+              type: string
+              example: "req_abc123"
+
+    # Team Models
+    TeamCreateRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: '^[a-zA-Z0-9_\s-]+$'
+          example: "Advanced Research Team"
+        description:
+          type: string
+          maxLength: 500
+          example: "Multi-disciplinary research and analysis team"
+        config_data:
+          $ref: '#/components/schemas/HierarchicalAgentConfiguration'
+          description: "Complete hierarchical team configuration"
+        config_file_path:
+          type: string
+          description: "Path to YAML configuration file"
+          example: "configs/examples/hierarchical/research_team.yml"
+        template_id:
+          type: string
+          description: "ID of template to use for team creation"
+          example: "research_pipeline"
+
+    TeamUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        config:
+          $ref: '#/components/schemas/TeamConfiguration'
+
+    TeamResponse:
+      type: object
+      properties:
+        team_id:
+          type: string
+          example: "team_abc123"
+        name:
+          type: string
+          example: "Advanced Research Team"
+        description:
+          type: string
+          example: "Multi-disciplinary research and analysis team"
+        status:
+          type: string
+          enum: [active, inactive, error, maintenance]
+          example: active
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        config:
+          $ref: '#/components/schemas/TeamConfiguration'
+        performance_metrics:
+          $ref: '#/components/schemas/PerformanceMetrics'
+
+    TeamListResponse:
+      type: object
+      properties:
+        teams:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamSummary'
+        total:
+          type: integer
+          example: 42
+        limit:
+          type: integer
+          example: 20
+        offset:
+          type: integer
+          example: 0
+
+    TeamSummary:
+      type: object
+      properties:
+        team_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, error, maintenance]
+        created_at:
+          type: string
+          format: date-time
+        performance_metrics:
+          $ref: '#/components/schemas/PerformanceMetrics'
+
+    TeamDeleteResponse:
+      type: object
+      properties:
+        team_id:
+          type: string
+        message:
+          type: string
+          example: "Team deleted successfully"
+        cancelled_executions:
+          type: integer
+          example: 2
+
+    TeamStatusResponse:
+      type: object
+      properties:
+        team_id:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, error, maintenance]
+        health_score:
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 0.87
+        active_executions:
+          type: integer
+          example: 3
+        last_execution:
+          type: string
+          format: date-time
+        performance_metrics:
+          $ref: '#/components/schemas/PerformanceMetrics'
+        resource_usage:
+          type: object
+          properties:
+            cpu_usage:
+              type: number
+              example: 0.45
+            memory_usage:
+              type: number
+              example: 0.67
+            token_usage_24h:
+              type: integer
+              example: 15420
+
+    PerformanceMetrics:
+      type: object
+      properties:
+        total_executions:
+          type: integer
+          example: 156
+        success_rate:
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 0.94
+        avg_response_time:
+          type: number
+          example: 12.3
+        avg_cost_per_execution:
+          type: number
+          example: 0.05
+
+    # Hierarchical Agent Configuration
+    HierarchicalAgentConfiguration:
+      type: object
+      required: [team, coordinator, teams]
+      properties:
+        team:
+          $ref: '#/components/schemas/TeamInfo'
+        coordinator:
+          $ref: '#/components/schemas/CoordinatorConfig'
+        teams:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamConfig'
+          minItems: 1
+        memory:
+          $ref: '#/components/schemas/HierarchicalMemoryConfig'
+        coordination:
+          $ref: '#/components/schemas/CoordinationConfig'
+        performance:
+          $ref: '#/components/schemas/PerformanceConfig'
+        deployment:
+          $ref: '#/components/schemas/DeploymentConfig'
+        runtime:
+          $ref: '#/components/schemas/HierarchicalRuntimeConfig'
+
+    TeamInfo:
+      type: object
+      required: [name, description, type]
+      properties:
+        name:
+          type: string
+          example: "Research Pipeline Team"
+        description:
+          type: string
+          example: "Hierarchical team for comprehensive research"
+        version:
+          type: string
+          example: "1.0.0"
+        type:
+          type: string
+          enum: [hierarchical]
+          example: "hierarchical"
+
+    # Legacy Team Configuration (kept for compatibility)
+    TeamConfiguration:
+      type: object
+      required: [coordinator, teams]
+      properties:
+        coordinator:
+          $ref: '#/components/schemas/CoordinatorConfig'
+        teams:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamConfig'
+          minItems: 1
+        performance:
+          $ref: '#/components/schemas/PerformanceConfig'
+
+    CoordinatorConfig:
+      type: object
+      required: [name, description, llm, prompts]
+      properties:
+        name:
+          type: string
+          example: "Research Coordinator"
+        description:
+          type: string
+          example: "Coordinates research tasks across specialized teams"
+        llm:
+          $ref: '#/components/schemas/LLMConfig'
+        prompts:
+          $ref: '#/components/schemas/CoordinatorPromptsConfig'
+        routing:
+          $ref: '#/components/schemas/RoutingConfig'
+        memory:
+          $ref: '#/components/schemas/MemoryConfig'
+
+    CoordinatorPromptsConfig:
+      type: object
+      required: [system_prompt, decision_prompt]
+      properties:
+        system_prompt:
+          $ref: '#/components/schemas/PromptTemplate'
+        decision_prompt:
+          $ref: '#/components/schemas/PromptTemplate'
+        coordination_prompt:
+          $ref: '#/components/schemas/PromptTemplate'
+
+    RoutingConfig:
+      type: object
+      properties:
+        strategy:
+          type: string
+          enum: [keyword_based, llm_based, rule_based, hybrid]
+          default: hybrid
+        fallback_team:
+          type: string
+        fallback_worker:
+          type: string
+        confidence_threshold:
+          type: number
+          default: 0.7
+        max_decision_time:
+          type: integer
+          default: 30
+
+    TeamConfig:
+      type: object
+      required: [name, supervisor, workers]
+      properties:
+        name:
+          type: string
+          example: "Research Team"
+        supervisor:
+          $ref: '#/components/schemas/SupervisorConfig'
+        workers:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkerConfig'
+          minItems: 1
+
+    SupervisorConfig:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: "Research Supervisor"
+        prompts:
+          $ref: '#/components/schemas/PromptConfig'
+        llm:
+          $ref: '#/components/schemas/LLMConfig'
+        memory:
+          $ref: '#/components/schemas/MemoryConfig'
+
+    WorkerConfig:
+      type: object
+      required: [name, capabilities]
+      properties:
+        name:
+          type: string
+          example: "Senior Researcher"
+        capabilities:
+          type: array
+          items:
+            type: string
+          example: ["research", "analysis", "data_processing"]
+        tools:
+          type: array
+          items:
+            type: string
+          example: ["web_search", "calculator", "file_reader"]
+        specializations:
+          type: array
+          items:
+            type: string
+          example: ["academic_research", "market_analysis"]
+        config_file:
+          type: string
+          example: "configs/examples/senior_researcher.yml"
+        config_data:
+          type: object
+          description: Inline configuration data
+
+    LLMConfig:
+      type: object
+      required: [provider, model]
+      properties:
+        provider:
+          type: string
+          enum: [openai, anthropic, google, groq]
+        model:
+          type: string
+          example: "gpt-4o"
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 2
+          example: 0.7
+        max_tokens:
+          type: integer
+          minimum: 1
+          example: 2048
+        timeout:
+          type: integer
+          minimum: 1
+          example: 30
+        api_key_env:
+          type: string
+          example: "OPENAI_API_KEY"
+          description: "Environment variable name containing the API key"
+
+    PromptTemplate:
+      type: object
+      required: [template]
+      properties:
+        template:
+          type: string
+          example: "You are a coordinator managing specialized teams..."
+        variables:
+          type: array
+          items:
+            type: string
+          example: ["task_context", "team_status"]
+
+    PromptConfig:
+      type: object
+      properties:
+        system_prompt:
+          $ref: '#/components/schemas/PromptTemplate'
+
+    MemoryConfig:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          default: false
+        type:
+          type: string
+          enum: [semantic, episodic, procedural]
+        retention_policy:
+          type: string
+          enum: [session, persistent, limited]
+
+    PerformanceConfig:
+      type: object
+      properties:
+        monitoring_enabled:
+          type: boolean
+          default: true
+        alerts:
+          type: array
+          items:
+            type: object
+            properties:
+              metric:
+                type: string
+              threshold:
+                type: number
+              action:
+                type: string
+
+    # Agent Models
+    AgentSearchRequest:
+      type: object
+      properties:
+        query:
+          type: string
+          maxLength: 200
+          example: "research analysis"
+        role:
+          type: string
+          enum: [coordinator, supervisor, worker, specialist]
+        capabilities:
+          type: array
+          items:
+            type: string
+          example: ["research", "analysis"]
+        tools:
+          type: array
+          items:
+            type: string
+        domain:
+          type: string
+          example: "academic"
+        min_compatibility:
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 0.8
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        offset:
+          type: integer
+          minimum: 0
+          default: 0
+
+    AgentListResponse:
+      type: object
+      properties:
+        agents:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentResponse'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    AgentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "agent_researcher_001"
+        name:
+          type: string
+          example: "Senior Researcher"
+        description:
+          type: string
+          example: "Expert in academic research and data analysis"
+        primary_role:
+          type: string
+          enum: [coordinator, supervisor, worker, specialist]
+        secondary_roles:
+          type: array
+          items:
+            type: string
+        capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Capability'
+        tools:
+          type: array
+          items:
+            type: string
+        specializations:
+          type: array
+          items:
+            type: string
+        compatibility_score:
+          type: number
+          minimum: 0
+          maximum: 1
+        file_path:
+          type: string
+        can_coordinate:
+          type: boolean
+        can_supervise:
+          type: boolean
+        team_size_limit:
+          type: integer
+
+    Capability:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "research"
+        description:
+          type: string
+          example: "Academic and web research"
+        proficiency:
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 0.9
+
+    AgentCompatibilityRequest:
+      type: object
+      required: [agent_ids]
+      properties:
+        agent_ids:
+          type: array
+          items:
+            type: string
+          minItems: 2
+          maxItems: 20
+        team_context:
+          type: string
+        include_suggestions:
+          type: boolean
+          default: true
+
+    AgentCompatibilityResponse:
+      type: object
+      properties:
+        compatibility_matrix:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: number
+        overall_compatibility:
+          type: number
+        recommendations:
+          type: array
+          items:
+            type: string
+        warnings:
+          type: array
+          items:
+            type: string
+
+    AgentStatsResponse:
+      type: object
+      properties:
+        total_agents:
+          type: integer
+        by_role:
+          type: object
+          properties:
+            coordinator:
+              type: integer
+            supervisor:
+              type: integer
+            worker:
+              type: integer
+            specialist:
+              type: integer
+        by_domain:
+          type: object
+          additionalProperties:
+            type: integer
+        top_capabilities:
+          type: array
+          items:
+            type: string
+        avg_compatibility:
+          type: number
+
+    TeamSuggestionRequest:
+      type: object
+      required: [requirements]
+      properties:
+        requirements:
+          type: object
+          properties:
+            domain:
+              type: string
+            task_type:
+              type: string
+            team_size:
+              type: integer
+              minimum: 2
+              maximum: 20
+            required_capabilities:
+              type: array
+              items:
+                type: string
+            optional_capabilities:
+              type: array
+              items:
+                type: string
+            budget_level:
+              type: string
+              enum: [low, standard, high]
+            performance_priority:
+              type: string
+              enum: [speed, accuracy, cost]
+
+    TeamSuggestionResponse:
+      type: object
+      properties:
+        suggestions:
+          type: array
+          items:
+            type: object
+            properties:
+              score:
+                type: number
+              composition:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    role:
+                      type: string
+                    agent_id:
+                      type: string
+                    agent_name:
+                      type: string
+              estimated_cost:
+                type: number
+              estimated_performance:
+                type: number
+
+    # Configuration Models
+    ConfigValidationRequest:
+      type: object
+      required: [config]
+      properties:
+        config:
+          $ref: '#/components/schemas/TeamConfiguration'
+        validation_level:
+          type: string
+          enum: [basic, standard, strict]
+          default: standard
+        optimize:
+          type: boolean
+          default: false
+
+    ConfigValidationResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        validation_result:
+          type: object
+          properties:
+            overall_score:
+              type: number
+            issues:
+              type: array
+              items:
+                $ref: '#/components/schemas/ValidationIssue'
+            warnings:
+              type: array
+              items:
+                type: string
+            recommendations:
+              type: array
+              items:
+                type: string
+            optimized_config:
+              $ref: '#/components/schemas/TeamConfiguration'
+
+    ValidationIssue:
+      type: object
+      properties:
+        severity:
+          type: string
+          enum: [error, warning, info]
+        code:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        suggestion:
+          type: string
+
+    ConfigUploadResponse:
+      type: object
+      properties:
+        file_id:
+          type: string
+        filename:
+          type: string
+        size:
+          type: integer
+        format:
+          type: string
+          enum: [yaml, json]
+        config:
+          $ref: '#/components/schemas/TeamConfiguration'
+        validation_result:
+          $ref: '#/components/schemas/ConfigValidationResponse'
+
+    TemplateListResponse:
+      type: object
+      properties:
+        templates:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateSummary'
+        total:
+          type: integer
+
+    TemplateSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        difficulty:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        tags:
+          type: array
+          items:
+            type: string
+        usage_count:
+          type: integer
+        rating:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+        file_path:
+          type: string
+
+    TemplateResponse:
+      allOf:
+        - $ref: '#/components/schemas/TemplateSummary'
+        - type: object
+          properties:
+            config:
+              $ref: '#/components/schemas/TeamConfiguration'
+            examples:
+              type: array
+              items:
+                type: object
+            customization_options:
+              type: object
+            prerequisites:
+              type: array
+              items:
+                type: string
+
+    ConfigExportRequest:
+      type: object
+      required: [team_id, format]
+      properties:
+        team_id:
+          type: string
+        format:
+          type: string
+          enum: [yaml, json, docker, terraform]
+        include_metadata:
+          type: boolean
+          default: true
+        anonymize:
+          type: boolean
+          default: false
+
+    ConfigExportResponse:
+      type: object
+      properties:
+        format:
+          type: string
+        content:
+          type: string
+        filename:
+          type: string
+        size:
+          type: integer
+
+    # Execution Models
+    ExecutionRequest:
+      type: object
+      required: [input_text]
+      properties:
+        input_text:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          example: "Research the latest developments in quantum computing"
+        team_id:
+          type: string
+          description: "Specific team to execute with (optional)"
+        worker_id:
+          type: string
+          description: "Specific worker to execute with (optional)"
+        timeout_seconds:
+          type: integer
+          minimum: 10
+          maximum: 3600
+          default: 120
+          description: "Execution timeout in seconds"
+        parameters:
+          type: object
+          description: "Additional execution parameters"
+          properties:
+            priority:
+              type: string
+              enum: [low, medium, high, urgent]
+            deadline:
+              type: string
+              format: date-time
+            format:
+              type: string
+              example: "detailed_report"
+            audience:
+              type: string
+              example: "technical executives"
+            constraints:
+              type: array
+              items:
+                type: string
+          additionalProperties: true
+
+    ExecutionResponse:
+      type: object
+      properties:
+        execution_id:
+          type: string
+        team_id:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, completed, failed, cancelled]
+        started_at:
+          type: string
+          format: date-time
+        estimated_completion:
+          type: string
+          format: date-time
+        progress:
+          $ref: '#/components/schemas/ExecutionProgress'
+
+    ExecutionProgress:
+      type: object
+      properties:
+        percentage:
+          type: number
+          minimum: 0
+          maximum: 100
+        current_step:
+          type: string
+        steps_completed:
+          type: integer
+        total_steps:
+          type: integer
+        eta_seconds:
+          type: number
+
+    ExecutionStatusResponse:
+      type: object
+      properties:
+        execution_id:
+          type: string
+        team_id:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, completed, failed, cancelled]
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        duration_seconds:
+          type: number
+        progress:
+          $ref: '#/components/schemas/ExecutionProgress'
+        result:
+          $ref: '#/components/schemas/ExecutionResult'
+        error:
+          $ref: '#/components/schemas/ExecutionError'
+        performance_metrics:
+          type: object
+          properties:
+            response_time:
+              type: number
+            accuracy_score:
+              type: number
+            team_coordination_score:
+              type: number
+            resource_efficiency:
+              type: number
+
+    ExecutionResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        output:
+          type: string
+        intermediate_outputs:
+          type: array
+          items:
+            type: object
+        metadata:
+          type: object
+          properties:
+            tokens_used:
+              type: integer
+            agents_involved:
+              type: array
+              items:
+                type: string
+            cost_estimate:
+              type: string
+            execution_path:
+              type: array
+              items:
+                type: object
+
+    ExecutionError:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+        recovery_suggestions:
+          type: array
+          items:
+            type: string
+
+    ExecutionListResponse:
+      type: object
+      properties:
+        executions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExecutionSummary'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    ExecutionSummary:
+      type: object
+      properties:
+        execution_id:
+          type: string
+        team_id:
+          type: string
+        status:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        duration_seconds:
+          type: number
+        success:
+          type: boolean
+
+    ExecutionCancelRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 200
+        force:
+          type: boolean
+          default: false
+
+    ExecutionCancelResponse:
+      type: object
+      properties:
+        execution_id:
+          type: string
+        status:
+          type: string
+        cancelled_at:
+          type: string
+          format: date-time
+        message:
+          type: string
+
+    ExecutionLogsResponse:
+      type: object
+      properties:
+        execution_id:
+          type: string
+        logs:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              level:
+                type: string
+                enum: [debug, info, warn, error]
+              agent:
+                type: string
+              message:
+                type: string
+              metadata:
+                type: object
+        total_entries:
+          type: integer

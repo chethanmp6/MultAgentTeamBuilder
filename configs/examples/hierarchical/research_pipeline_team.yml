@@ -1,0 +1,296 @@
+# Research Pipeline Team Configuration
+# A hierarchical team that follows: Browser Agent → Research Analyst → Writer Agent
+team:
+  name: "Research Pipeline Team"
+  description: "Hierarchical team for comprehensive research with web search, analysis, and content creation"
+  version: "1.0.0"
+  type: "hierarchical"
+
+# Team Coordinator Configuration
+coordinator:
+  name: "Research Coordinator"
+  description: "Coordinates research pipeline tasks across specialized teams"
+  
+  llm:
+    provider: "openai"
+    model: "gpt-4o-mini"
+    temperature: 0.3
+    max_tokens: 2000
+    api_key_env: "OPENAI_API_KEY"
+  
+  prompts:
+    system_prompt:
+      template: |
+        You are a Research Coordinator managing a hierarchical research pipeline team.
+        
+        Your teams specialize in:
+        - Information Gathering: Web search and data collection
+        - Analysis: Research analysis and fact-checking  
+        - Content Creation: Writing reports and summaries
+        
+        Available Teams:
+        1. "information_team" - Web browser agents for finding information
+        2. "analysis_team" - Research analysts for processing information
+        3. "content_team" - Writer agents for creating final content
+        
+        Task Flow Strategy:
+        - Route initial research requests to information_team
+        - Send analysis tasks to analysis_team
+        - Direct writing/content creation to content_team
+        - Coordinate multi-step research projects across teams
+        
+        Consider the task type, complexity, and required workflow when routing.
+      variables: ["task_context", "team_status"]
+    
+    decision_prompt:
+      template: |
+        Research Task: {user_input}
+        
+        Analyze this research request and determine the appropriate team:
+        
+        Team Capabilities:
+        - information_team: Web search, data gathering, source finding
+        - analysis_team: Data analysis, fact-checking, research synthesis
+        - content_team: Report writing, content creation, summarization
+        
+        Consider:
+        1. What type of information is needed?
+        2. Does it require web search or analysis of existing data?
+        3. Is the final output a written report or analysis?
+        4. Would this benefit from a multi-team pipeline approach?
+        
+        Choose the best starting team and explain your reasoning.
+      variables: ["user_input", "available_teams"]
+    
+    coordination_prompt:
+      template: |
+        Coordinating multi-team research task: {task_description}
+        
+        Current status:
+        - Information gathering: {info_status}
+        - Analysis phase: {analysis_status}  
+        - Content creation: {content_status}
+        
+        Determine next steps and team coordination requirements.
+      variables: ["task_description", "info_status", "analysis_status", "content_status"]
+  
+  routing:
+    strategy: "hybrid"
+    fallback_team: "information_team"
+    confidence_threshold: 0.8
+    max_decision_time: 30
+
+# Teams Configuration
+teams:
+  - name: "information_team"
+    description: "Web search and information gathering specialists"
+    
+    supervisor:
+      name: "Information Supervisor"
+      llm:
+        provider: "openai"
+        model: "gpt-4o-mini"
+        temperature: 0.2
+        max_tokens: 1500
+        api_key_env: "OPENAI_API_KEY"
+      routing:
+        strategy: "keyword_based"
+        fallback_worker: "web_searcher"
+        confidence_threshold: 0.7
+        max_decision_time: 20
+    
+    workers:
+      - name: "web_searcher"
+        role: "web_browser"
+        config_file: "configs/examples/web_browser_agent.yml"
+        description: "Specialized in web search and online information gathering"
+        capabilities: 
+          - "web_search"
+          - "information_extraction"
+          - "source_verification"
+        priority: 1
+      
+      - name: "data_collector"
+        role: "research_agent"
+        config_file: "configs/examples/research_agent.yml"
+        description: "General purpose research and data collection"
+        capabilities:
+          - "research"
+          - "data_gathering"
+          - "fact_checking"
+        priority: 2
+
+  - name: "analysis_team"
+    description: "Research analysis and synthesis specialists"
+    
+    supervisor:
+      name: "Analysis Supervisor"
+      llm:
+        provider: "openai"
+        model: "gpt-4o-mini"
+        temperature: 0.3
+        max_tokens: 2000
+        api_key_env: "OPENAI_API_KEY"
+      routing:
+        strategy: "llm_based"
+        fallback_worker: "research_analyst"
+        confidence_threshold: 0.8
+        max_decision_time: 25
+    
+    workers:
+      - name: "research_analyst"
+        role: "analyst"
+        config_file: "configs/examples/research_agent.yml"
+        description: "Analyzes research data and synthesizes findings"
+        capabilities:
+          - "data_analysis"
+          - "research_synthesis"
+          - "fact_verification"
+          - "trend_analysis"
+        priority: 1
+        
+        overrides:
+          llm:
+            temperature: 0.4
+            max_tokens: 3000
+
+  - name: "content_team"
+    description: "Content creation and writing specialists"
+    
+    supervisor:
+      name: "Content Supervisor"
+      llm:
+        provider: "openai"
+        model: "gpt-4o-mini"
+        temperature: 0.5
+        max_tokens: 2500
+        api_key_env: "OPENAI_API_KEY"
+      routing:
+        strategy: "keyword_based"
+        fallback_worker: "content_writer"
+        confidence_threshold: 0.7
+        max_decision_time: 20
+    
+    workers:
+      - name: "content_writer"
+        role: "writer"
+        config_file: "configs/examples/writer_agent.yml"
+        description: "Creates comprehensive written content and reports"
+        capabilities:
+          - "content_creation"
+          - "report_writing"
+          - "summarization"
+          - "documentation"
+        priority: 1
+      
+      - name: "technical_writer"
+        role: "technical_writer"
+        config_file: "configs/examples/writer_agent.yml"
+        description: "Specialized in technical documentation and analysis reports"
+        capabilities:
+          - "technical_writing"
+          - "documentation"
+          - "analysis_reports"
+        priority: 2
+        
+        overrides:
+          llm:
+            temperature: 0.3
+
+# Memory Configuration
+memory:
+  enabled: true
+  provider: "langmem"
+  
+  levels:
+    coordinator:
+      enabled: true
+      types:
+        semantic: true
+        episodic: true
+        procedural: true
+      storage:
+        backend: "memory"
+    
+    team:
+      enabled: true
+      shared_across_workers: true
+      types:
+        semantic: true
+        episodic: true
+        procedural: true
+    
+    worker:
+      enabled: true
+      individual: false
+      types:
+        semantic: true
+        episodic: false
+        procedural: true
+  
+  settings:
+    max_memory_size: 25000
+    retention_days: 90
+    background_processing: true
+    memory_consolidation: true
+
+# Coordination Configuration
+coordination:
+  cross_team_communication: true
+  team_dependencies: 
+    - "analysis_team depends on information_team"
+    - "content_team depends on analysis_team"
+  
+  task_flow:
+    type: "pipeline"
+    max_parallel_tasks: 2
+    timeout_per_task: 300
+    retry_strategy: "exponential"
+  
+  results:
+    aggregation_strategy: "merge"
+    final_response_format: "detailed"
+    include_reasoning: true
+    include_metadata: true
+
+# Performance Configuration
+performance:
+  monitoring:
+    enabled: true
+    metrics:
+      - "response_time"
+      - "task_success_rate"
+      - "pipeline_efficiency"
+      - "information_quality"
+      - "content_readability"
+  
+  optimization:
+    enabled: true
+    auto_scaling: false
+    load_balancing: true
+    adaptive_routing: true
+
+# Deployment Configuration
+deployment:
+  environment: "development"
+  scaling:
+    min_workers_per_team: 1
+    max_workers_per_team: 3
+    auto_scale: false
+  
+  security:
+    api_key_management: "environment"
+    access_control: []
+    audit_logging: true
+
+# Runtime Configuration
+runtime:
+  max_iterations: 100
+  timeout_seconds: 900
+  retry_attempts: 3
+  debug_mode: false
+  
+  max_delegation_depth: 3
+  task_queue_size: 50
+  concurrent_tasks: 3
+  heartbeat_interval: 60

@@ -1,0 +1,362 @@
+# Content Creation Team Configuration
+# A hierarchical team for content creation with research, writing, and editing
+team:
+  name: "Content Creation Team"
+  description: "Hierarchical team for comprehensive content creation including research, writing, and editing"
+  version: "1.0.0"
+  type: "hierarchical"
+
+# Team Coordinator Configuration
+coordinator:
+  name: "Content Coordinator"
+  description: "Coordinates content creation projects across research, writing, and editing teams"
+  
+  llm:
+    provider: "openai"
+    model: "gpt-4o"
+    temperature: 0.5
+    max_tokens: 2500
+    api_key_env: "OPENAI_API_KEY"
+  
+  prompts:
+    system_prompt:
+      template: |
+        You are a Content Coordinator managing content creation teams.
+        
+        Your teams specialize in:
+        - Research: Information gathering, fact-checking, and source validation
+        - Writing: Content creation, storytelling, and original composition
+        - Editorial: Editing, proofreading, and quality assurance
+        
+        Available Teams:
+        1. "research_team" - Research specialists and fact-checkers
+        2. "writing_team" - Content writers and creative specialists
+        3. "editorial_team" - Editors and quality assurance specialists
+        
+        Content Creation Workflow:
+        - Route research requests to research_team
+        - Send writing/creation tasks to writing_team  
+        - Direct editing/review tasks to editorial_team
+        - Coordinate multi-phase content projects
+        
+        Consider content type, audience, deadline, and quality requirements.
+      variables: ["content_brief", "project_timeline"]
+    
+    decision_prompt:
+      template: |
+        Content Request: {user_input}
+        
+        Project Details:
+        - Content Type: {content_type}
+        - Target Audience: {audience}
+        - Deadline: {deadline}
+        - Quality Level: {quality_level}
+        
+        Determine the appropriate team for this content task:
+        
+        Team Capabilities:
+        - research_team: Information gathering, fact-checking, source validation
+        - writing_team: Content creation, copywriting, creative writing
+        - editorial_team: Editing, proofreading, style optimization
+        
+        Consider:
+        1. What phase of content creation is needed?
+        2. Does this require research, writing, or editing?
+        3. What specialized skills are required?
+        4. Is this part of a larger content project?
+        
+        Choose the best team for this content phase.
+      variables: ["user_input", "content_type", "audience", "deadline", "quality_level"]
+    
+    coordination_prompt:
+      template: |
+        Coordinating content project: {project_description}
+        
+        Project Progress:
+        - Research Phase: {research_status}
+        - Writing Phase: {writing_status}
+        - Editorial Phase: {editorial_status}
+        
+        Quality requirements: {quality_standards}
+        Deadline: {project_deadline}
+        
+        Coordinate teams for optimal content quality and timeline.
+      variables: ["project_description", "research_status", "writing_status", "editorial_status", "quality_standards", "project_deadline"]
+  
+  routing:
+    strategy: "hybrid"
+    fallback_team: "research_team"
+    confidence_threshold: 0.8
+    max_decision_time: 35
+
+# Teams Configuration
+teams:
+  - name: "research_team"
+    description: "Research specialists and information gathering experts"
+    
+    supervisor:
+      name: "Research Supervisor"
+      llm:
+        provider: "openai"
+        model: "gpt-4o-mini"
+        temperature: 0.2
+        max_tokens: 2000
+        api_key_env: "OPENAI_API_KEY"
+      routing:
+        strategy: "keyword_based"
+        fallback_worker: "content_researcher"
+        confidence_threshold: 0.7
+        max_decision_time: 25
+    
+    workers:
+      - name: "content_researcher"
+        role: "researcher"
+        config_file: "configs/examples/web_browser_agent.yml"
+        description: "Conducts comprehensive research for content projects"
+        capabilities:
+          - "web_research"
+          - "source_validation"
+          - "fact_checking"
+          - "data_gathering"
+        priority: 1
+        
+        overrides:
+          llm:
+            temperature: 0.2
+            max_tokens: 3000
+      
+      - name: "fact_checker"
+        role: "fact_checker"
+        config_file: "configs/examples/research_agent.yml"
+        description: "Specialized in fact-checking and source verification"
+        capabilities:
+          - "fact_verification"
+          - "source_credibility"
+          - "accuracy_validation"
+          - "claim_analysis"
+        priority: 2
+
+  - name: "writing_team"
+    description: "Content writers and creative specialists"
+    
+    supervisor:
+      name: "Writing Supervisor"
+      llm:
+        provider: "openai"
+        model: "gpt-4o"
+        temperature: 0.6
+        max_tokens: 3500
+        api_key_env: "OPENAI_API_KEY"
+      routing:
+        strategy: "llm_based"
+        fallback_worker: "content_writer"
+        confidence_threshold: 0.8
+        max_decision_time: 30
+    
+    workers:
+      - name: "content_writer"
+        role: "writer"
+        config_file: "configs/examples/writer_agent.yml"
+        description: "General content writer for various formats"
+        capabilities:
+          - "article_writing"
+          - "blog_posts"
+          - "content_creation"
+          - "storytelling"
+        priority: 1
+        
+        overrides:
+          llm:
+            temperature: 0.7
+            max_tokens: 4000
+      
+      - name: "copywriter"
+        role: "copywriter"
+        config_file: "configs/examples/writer_agent.yml"
+        description: "Specialized in marketing copy and persuasive writing"
+        capabilities:
+          - "marketing_copy"
+          - "persuasive_writing"
+          - "brand_voice"
+          - "call_to_action"
+        priority: 2
+        
+        overrides:
+          llm:
+            temperature: 0.6
+      
+      - name: "technical_writer"
+        role: "technical_writer"
+        config_file: "configs/examples/writer_agent.yml"
+        description: "Technical documentation and instructional content"
+        capabilities:
+          - "technical_documentation"
+          - "user_guides"
+          - "tutorials"
+          - "process_documentation"
+        priority: 2
+        
+        overrides:
+          llm:
+            temperature: 0.3
+            max_tokens: 4500
+
+  - name: "editorial_team"
+    description: "Editors and quality assurance specialists"
+    
+    supervisor:
+      name: "Editorial Supervisor"
+      llm:
+        provider: "openai"
+        model: "gpt-4o"
+        temperature: 0.3
+        max_tokens: 3000
+        api_key_env: "OPENAI_API_KEY"
+      routing:
+        strategy: "rule_based"
+        fallback_worker: "content_editor"
+        confidence_threshold: 0.8
+        max_decision_time: 25
+    
+    workers:
+      - name: "content_editor"
+        role: "editor"
+        config_file: "configs/examples/writer_agent.yml"
+        description: "General content editing and improvement"
+        capabilities:
+          - "content_editing"
+          - "style_improvement"
+          - "structure_optimization"
+          - "readability_enhancement"
+        priority: 1
+        
+        overrides:
+          llm:
+            temperature: 0.3
+            max_tokens: 3500
+      
+      - name: "copy_editor"
+        role: "copy_editor"
+        config_file: "configs/examples/writer_agent.yml"
+        description: "Detailed copy editing and proofreading"
+        capabilities:
+          - "grammar_correction"
+          - "proofreading"
+          - "consistency_check"
+          - "style_guide_compliance"
+        priority: 2
+        
+        overrides:
+          llm:
+            temperature: 0.1
+      
+      - name: "seo_editor"
+        role: "seo_specialist"
+        config_file: "configs/examples/writer_agent.yml"
+        description: "SEO optimization and digital content enhancement"
+        capabilities:
+          - "seo_optimization"
+          - "keyword_integration"
+          - "meta_descriptions"
+          - "digital_formatting"
+        priority: 3
+
+# Memory Configuration
+memory:
+  enabled: true
+  provider: "langmem"
+  
+  levels:
+    coordinator:
+      enabled: true
+      types:
+        semantic: true
+        episodic: true
+        procedural: true
+      storage:
+        backend: "memory"
+    
+    team:
+      enabled: true
+      shared_across_workers: true
+      types:
+        semantic: true
+        episodic: true
+        procedural: true
+    
+    worker:
+      enabled: true
+      individual: true
+      types:
+        semantic: true
+        episodic: false
+        procedural: true
+  
+  settings:
+    max_memory_size: 35000
+    retention_days: 90
+    background_processing: true
+    memory_consolidation: true
+
+# Coordination Configuration
+coordination:
+  cross_team_communication: true
+  team_dependencies:
+    - "writing_team depends on research_team"
+    - "editorial_team depends on writing_team"
+  
+  task_flow:
+    type: "pipeline"
+    max_parallel_tasks: 3
+    timeout_per_task: 450
+    retry_strategy: "exponential"
+  
+  results:
+    aggregation_strategy: "merge"
+    final_response_format: "detailed"
+    include_reasoning: true
+    include_metadata: true
+
+# Performance Configuration
+performance:
+  monitoring:
+    enabled: true
+    metrics:
+      - "content_quality"
+      - "response_time"
+      - "readability_score"
+      - "seo_effectiveness"
+      - "audience_engagement"
+  
+  optimization:
+    enabled: true
+    auto_scaling: false
+    load_balancing: true
+    adaptive_routing: true
+
+# Deployment Configuration
+deployment:
+  environment: "development"
+  scaling:
+    min_workers_per_team: 1
+    max_workers_per_team: 4
+    auto_scale: false
+  
+  security:
+    api_key_management: "environment"
+    access_control: 
+      - "content_version_control"
+      - "plagiarism_protection"
+    audit_logging: true
+
+# Runtime Configuration
+runtime:
+  max_iterations: 120
+  timeout_seconds: 1200
+  retry_attempts: 3
+  debug_mode: false
+  
+  max_delegation_depth: 4
+  task_queue_size: 75
+  concurrent_tasks: 4
+  heartbeat_interval: 120

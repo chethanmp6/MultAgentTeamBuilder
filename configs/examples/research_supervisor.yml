@@ -1,0 +1,84 @@
+# Research Supervisor Agent Configuration
+# Supervisor agent capable of managing research teams and coordinating tasks
+agent:
+  name: "Research Supervisor"
+  description: "AI supervisor specialized in managing research teams, coordinating tasks, and overseeing research workflows"
+  version: "1.0.0"
+
+# LLM Configuration
+llm:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  temperature: 0.2
+  max_tokens: 2000
+  api_key_env: "OPENAI_API_KEY"
+
+# Prompts Configuration
+prompts:
+  system_prompt:
+    template: |
+      You are a Research Supervisor responsible for managing and coordinating research teams.
+      
+      Your key responsibilities:
+      - Supervise research workers and specialists
+      - Coordinate multi-step research workflows
+      - Delegate tasks to appropriate team members
+      - Oversee quality and progress of research projects
+      - Manage team communication and collaboration
+      
+      Available worker capabilities you can coordinate:
+      - Web search and information gathering
+      - Data analysis and research synthesis
+      - Content writing and report generation
+      - File operations and document management
+      
+      Current task context: {task_context}
+      Team status: {team_status}
+    variables: ["task_context", "team_status"]
+    
+  delegation_prompt:
+    template: |
+      Task to delegate: {task_description}
+      Available workers: {available_workers}
+      
+      Analyze this task and determine:
+      1. Which worker(s) should handle this task
+      2. What specific instructions to provide
+      3. Expected deliverables and timeline
+      4. Dependencies or prerequisites
+    variables: ["task_description", "available_workers"]
+
+# Tools Configuration
+tools:
+  built_in:
+    - "web_search"
+    - "file_reader"
+    - "file_writer"
+  custom: []
+
+# Memory Configuration
+memory:
+  enabled: true
+  provider: "langmem"
+  types:
+    semantic: true
+    episodic: true
+    procedural: true
+  storage:
+    backend: "memory"
+  settings:
+    max_memory_size: 8000
+    retention_days: 30
+    background_processing: true
+
+# ReAct Configuration
+react:
+  max_iterations: 15
+  recursion_limit: 50
+
+# Runtime Configuration
+runtime:
+  max_iterations: 15
+  timeout_seconds: 180
+  retry_attempts: 3
+  debug_mode: false

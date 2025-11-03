@@ -1,0 +1,140 @@
+# Web Content Team - Hierarchical Configuration
+# A hierarchical team with supervisor and specialized web browser + writer agents
+agent:
+  name: "Web Content Team Coordinator"
+  description: "Coordinates between web browser and writer agents for comprehensive content creation"
+  version: "1.0.0"
+
+# LLM Configuration
+llm:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  temperature: 0.4
+  max_tokens: 3000
+  api_key_env: "OPENAI_API_KEY"
+
+# Prompts Configuration
+prompts:
+  system_prompt:
+    template: |
+      You are the Web Content Team Coordinator, managing a specialized team for web research and content creation.
+      
+      Your team consists of:
+      1. **Web Browser Agent**: Specializes in web searches, finding sources, gathering online information
+      2. **Writer Agent**: Specializes in content creation, writing articles, reports, and documentation
+      
+      Your role is to:
+      - Analyze incoming requests to determine which agent(s) should handle the task
+      - Route web research tasks to the Web Browser Agent
+      - Route writing and content creation tasks to the Writer Agent
+      - Coordinate collaborative workflows where web research feeds into content creation
+      - Synthesize results from multiple agents when needed
+      - Ensure quality and coherence in the final output
+      
+      Decision Making Guidelines:
+      - Use Web Browser Agent for: searches, finding information, fact-checking, gathering sources
+      - Use Writer Agent for: creating content, writing articles, formatting text, editing
+      - Use both agents sequentially for: research-based writing tasks (browser first, then writer)
+      
+      Current request context: {query}
+      Team memory context: {memory_context}
+    variables: ["query", "memory_context"]
+    
+  user_prompt:
+    template: |
+      Task Request: {user_input}
+      
+      Please coordinate your team to handle this request effectively:
+      1. Determine which agent(s) are needed
+      2. Route the task appropriately
+      3. Ensure high-quality results
+      4. Provide a comprehensive response
+    variables: ["user_input"]
+  
+  tool_prompt:
+    template: |
+      Coordinate team resources for: {task_description}
+      
+      Available team capabilities:
+      - Web browsing and research
+      - Content writing and creation
+      - File operations
+      
+      Ensure efficient task delegation and quality output.
+    variables: ["task_description"]
+
+# Tools Configuration
+tools:
+  built_in:
+    - "web_search"
+    - "file_reader"
+    - "file_writer"
+  custom: []
+
+# Memory Configuration
+memory:
+  enabled: true
+  provider: "langmem"
+  types:
+    semantic: true
+    episodic: true
+    procedural: true
+  storage:
+    backend: "memory"
+  settings:
+    max_memory_size: 10000
+    retention_days: 45
+    background_processing: true
+
+# ReAct Configuration
+react:
+  max_iterations: 12
+  recursion_limit: 60
+
+# Optimization Configuration
+optimization:
+  enabled: true
+  prompt_optimization:
+    enabled: true
+    feedback_collection: true
+    ab_testing: true
+    optimization_frequency: "weekly"
+  performance_tracking:
+    enabled: true
+    metrics:
+      - "response_time"
+      - "accuracy"
+      - "user_satisfaction"
+      - "task_completion_rate"
+      - "team_coordination_efficiency"
+
+# Runtime Configuration
+runtime:
+  max_iterations: 12
+  timeout_seconds: 240
+  retry_attempts: 3
+  debug_mode: false
+
+# Hierarchical Team Configuration
+hierarchical:
+  enabled: true
+  team_structure:
+    coordinator: "web_content_coordinator"
+    teams:
+      web_research:
+        supervisor: "web_research_supervisor"
+        workers:
+          - "web_browser_agent"
+      content_creation:
+        supervisor: "content_supervisor"  
+        workers:
+          - "writer_agent"
+  
+  routing_strategy: "intelligent"
+  collaboration_mode: "sequential_and_parallel"
+  
+  # Team coordination settings
+  coordination:
+    max_handoffs: 3
+    timeout_per_agent: 120
+    quality_threshold: 0.8

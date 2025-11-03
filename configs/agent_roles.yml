@@ -1,0 +1,298 @@
+# Agent Role Definitions and Compatibility Matrix
+# This configuration defines roles, capabilities, and compatibility rules for hierarchical agent teams
+
+# Role Definitions
+roles:
+  coordinator:
+    name: "Coordinator"
+    description: "High-level orchestrator that manages multiple teams and routes tasks"
+    capabilities:
+      required:
+        - "routing"
+        - "communication"
+        - "coordination"
+      preferred:
+        - "web_search"
+        - "research"
+        - "writing"
+    responsibilities:
+      - "Task routing between teams"
+      - "Inter-team communication"
+      - "Overall project coordination"
+      - "Performance monitoring"
+    team_size_limits:
+      min_teams: 1
+      max_teams: 10
+      recommended_teams: 5
+    
+  supervisor:
+    name: "Supervisor"
+    description: "Team leader that manages worker agents within a specific domain"
+    capabilities:
+      required:
+        - "supervision"
+        - "communication"
+      preferred:
+        - "routing"
+        - "coordination"
+    responsibilities:
+      - "Worker task delegation"
+      - "Team performance monitoring"
+      - "Quality assurance"
+      - "Resource allocation"
+    team_size_limits:
+      min_workers: 1
+      max_workers: 8
+      recommended_workers: 3
+    
+  worker:
+    name: "Worker"
+    description: "Specialized agent that executes specific tasks"
+    capabilities:
+      required: []  # Workers can have any capabilities
+      preferred:
+        - "web_search"
+        - "writing"
+        - "research"
+        - "data_analysis"
+        - "code_generation"
+    responsibilities:
+      - "Task execution"
+      - "Specialized processing"
+      - "Result delivery"
+    team_size_limits: null  # Workers don't manage teams
+    
+  specialist:
+    name: "Specialist"
+    description: "Highly specialized agent for specific domain expertise"
+    capabilities:
+      required: []  # Specialists have domain-specific capabilities
+      preferred:
+        - "specialized_knowledge"
+        - "expert_analysis"
+        - "domain_expertise"
+    responsibilities:
+      - "Expert analysis"
+      - "Domain-specific tasks"
+      - "Quality validation"
+      - "Technical guidance"
+    team_size_limits: null
+
+# Capability Definitions
+capabilities:
+  # Core coordination capabilities
+  coordination:
+    name: "Coordination"
+    description: "Ability to coordinate multiple agents and tasks"
+    category: "management"
+    compatibility: ["routing", "communication", "supervision"]
+    
+  routing:
+    name: "Routing"
+    description: "Ability to route tasks to appropriate agents"
+    category: "management"
+    compatibility: ["coordination", "communication"]
+    
+  supervision:
+    name: "Supervision"
+    description: "Ability to supervise and manage worker agents"
+    category: "management"
+    compatibility: ["coordination", "communication", "routing"]
+    
+  communication:
+    name: "Communication"
+    description: "Inter-agent communication and messaging"
+    category: "core"
+    compatibility: ["coordination", "routing", "supervision"]
+  
+  # Functional capabilities
+  web_search:
+    name: "Web Search"
+    description: "Search the web for information"
+    category: "information"
+    compatibility: ["research", "data_analysis", "writing"]
+    
+  research:
+    name: "Research"
+    description: "Conduct research and gather information"
+    category: "information"
+    compatibility: ["web_search", "data_analysis", "writing"]
+    
+  writing:
+    name: "Writing"
+    description: "Content creation and writing"
+    category: "content"
+    compatibility: ["research", "web_search", "data_analysis"]
+    
+  data_analysis:
+    name: "Data Analysis"
+    description: "Analyze and process data"
+    category: "analysis"
+    compatibility: ["research", "web_search", "writing"]
+    
+  code_generation:
+    name: "Code Generation"
+    description: "Generate and write code"
+    category: "technical"
+    compatibility: ["debugging", "file_operations"]
+    
+  debugging:
+    name: "Debugging"
+    description: "Debug and fix code issues"
+    category: "technical"
+    compatibility: ["code_generation", "file_operations"]
+    
+  file_operations:
+    name: "File Operations"
+    description: "Read and write files"
+    category: "utility"
+    compatibility: ["code_generation", "debugging", "writing"]
+    
+  calculator:
+    name: "Calculator"
+    description: "Mathematical calculations"
+    category: "utility"
+    compatibility: ["data_analysis"]
+
+# Compatibility Matrix
+# Defines how well different roles work together
+compatibility_matrix:
+  coordinator:
+    coordinator: 0.3  # Multiple coordinators can conflict
+    supervisor: 0.9   # Coordinators work well with supervisors
+    worker: 0.7       # Coordinators can work with workers but prefer supervisors
+    specialist: 0.8   # Coordinators benefit from specialist expertise
+    
+  supervisor:
+    coordinator: 0.9  # Supervisors work well under coordinators
+    supervisor: 0.6   # Multiple supervisors can collaborate but may have overlap
+    worker: 0.95      # Supervisors work excellently with workers
+    specialist: 0.85  # Supervisors benefit from specialists
+    
+  worker:
+    coordinator: 0.7  # Workers can report to coordinators
+    supervisor: 0.95  # Workers work best under supervisors
+    worker: 0.8       # Workers can collaborate peer-to-peer
+    specialist: 0.9   # Workers learn from specialists
+    
+  specialist:
+    coordinator: 0.8  # Specialists provide expertise to coordinators
+    supervisor: 0.85  # Specialists support supervisors
+    worker: 0.9       # Specialists guide workers
+    specialist: 0.7   # Multiple specialists may have domain overlap
+
+# Team Composition Rules
+team_composition:
+  # Minimum viable team
+  minimum:
+    coordinator: 1
+    supervisor: 1
+    worker: 1
+    total_agents: 3
+    
+  # Recommended team sizes
+  recommended:
+    small_team:
+      coordinator: 1
+      supervisor: 1
+      worker: 2-3
+      total_agents: 4-5
+      
+    medium_team:
+      coordinator: 1
+      supervisor: 2-3
+      worker: 4-8
+      total_agents: 7-12
+      
+    large_team:
+      coordinator: 1
+      supervisor: 3-5
+      worker: 8-15
+      total_agents: 12-21
+  
+  # Team composition rules
+  rules:
+    - "Every team must have exactly one coordinator"
+    - "Each supervisor should manage 2-5 workers ideally"
+    - "Coordinators should manage 2-5 supervisors ideally"
+    - "Workers should report to supervisors, not directly to coordinators"
+    - "Specialists can be attached to any level but work best with workers"
+
+# Task-based Team Suggestions
+task_templates:
+  research_pipeline:
+    name: "Research Pipeline"
+    description: "End-to-end research with analysis and reporting"
+    recommended_agents:
+      coordinator: ["research_coordinator", "general_coordinator"]
+      supervisor: ["research_supervisor"]
+      workers: ["web_browser_agent", "research_agent", "writer_agent"]
+    required_capabilities: ["web_search", "research", "writing"]
+    
+  development_team:
+    name: "Development Team"
+    description: "Software development with testing and documentation"
+    recommended_agents:
+      coordinator: ["dev_coordinator", "technical_coordinator"]
+      supervisor: ["dev_supervisor", "technical_supervisor"]
+      workers: ["coding_assistant", "debug_agent", "documentation_agent"]
+    required_capabilities: ["code_generation", "debugging", "file_operations"]
+    
+  content_creation:
+    name: "Content Creation"
+    description: "Content research, creation, and editing pipeline"
+    recommended_agents:
+      coordinator: ["content_coordinator"]
+      supervisor: ["content_supervisor", "editorial_supervisor"]
+      workers: ["research_agent", "writer_agent", "editor_agent"]
+    required_capabilities: ["research", "writing", "web_search"]
+    
+  customer_support:
+    name: "Customer Support"
+    description: "Multi-tier customer support with escalation"
+    recommended_agents:
+      coordinator: ["support_coordinator"]
+      supervisor: ["support_supervisor", "escalation_supervisor"]
+      workers: ["customer_support", "technical_support", "billing_support"]
+    required_capabilities: ["communication", "research", "writing"]
+
+# Performance Metrics
+metrics:
+  team_effectiveness:
+    - "task_completion_rate"
+    - "response_time"
+    - "quality_score"
+    - "coordination_efficiency"
+    
+  agent_performance:
+    - "individual_success_rate"
+    - "average_response_time"
+    - "capability_utilization"
+    - "collaboration_score"
+    
+  system_health:
+    - "overall_throughput"
+    - "error_rate"
+    - "resource_utilization"
+    - "scalability_index"
+
+# Validation Rules
+validation:
+  mandatory_checks:
+    - "coordinator_present"
+    - "supervisor_present"
+    - "worker_present"
+    - "capability_coverage"
+    - "team_size_limits"
+    
+  warning_conditions:
+    - "excessive_team_size"
+    - "capability_gaps"
+    - "role_imbalance"
+    - "communication_bottlenecks"
+    
+  optimization_suggestions:
+    - "capability_redundancy"
+    - "load_distribution"
+    - "specialization_opportunities"
+    - "workflow_improvements"

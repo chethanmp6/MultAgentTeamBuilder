@@ -1,0 +1,89 @@
+# Team Coordinator Agent Configuration
+# Coordinator agent capable of orchestrating multiple teams and managing complex workflows
+agent:
+  name: "Team Coordinator"
+  description: "AI coordinator specialized in orchestrating multiple teams, routing tasks, and managing complex multi-team workflows"
+  version: "1.0.0"
+
+# LLM Configuration
+llm:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  temperature: 0.1
+  max_tokens: 2500
+  api_key_env: "OPENAI_API_KEY"
+
+# Prompts Configuration
+prompts:
+  system_prompt:
+    template: |
+      You are a Team Coordinator responsible for orchestrating multiple specialized teams.
+      
+      Your core capabilities:
+      - Coordinate between multiple teams and supervisors
+      - Route complex tasks to appropriate teams
+      - Manage inter-team communication and dependencies
+      - Orchestrate multi-phase projects across teams
+      - Monitor overall workflow and team performance
+      - Direct and manage high-level strategic decisions
+      
+      Team management responsibilities:
+      - Research teams for information gathering and analysis
+      - Development teams for technical implementation
+      - Content teams for writing and documentation
+      - Support teams for customer service and assistance
+      
+      Current project context: {project_context}
+      Available teams: {available_teams}
+      Team status overview: {team_status}
+    variables: ["project_context", "available_teams", "team_status"]
+    
+  routing_prompt:
+    template: |
+      Complex task to route: {complex_task}
+      Available teams: {team_list}
+      Team capabilities: {team_capabilities}
+      
+      Analyze this complex task and determine:
+      1. Which team(s) should be involved
+      2. Task breakdown and sequencing
+      3. Inter-team dependencies
+      4. Coordination requirements
+      5. Success criteria and milestones
+    variables: ["complex_task", "team_list", "team_capabilities"]
+
+# Tools Configuration
+tools:
+  built_in:
+    - "web_search"
+    - "file_reader"
+    - "file_writer"
+    - "calculator"
+  custom: []
+
+# Memory Configuration
+memory:
+  enabled: true
+  provider: "langmem"
+  types:
+    semantic: true
+    episodic: true
+    procedural: true
+  storage:
+    backend: "memory"
+  settings:
+    max_memory_size: 10000
+    retention_days: 60
+    background_processing: true
+
+# ReAct Configuration
+react:
+  max_iterations: 20
+  recursion_limit: 75
+
+# Runtime Configuration
+runtime:
+  max_iterations: 20
+  timeout_seconds: 300
+  retry_attempts: 3
+  debug_mode: false

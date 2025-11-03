@@ -1,0 +1,195 @@
+# Hierarchical Agent Team Configuration Schema
+# This schema extends the base agent configuration to support hierarchical teams
+
+# Basic team information
+team:
+  name: string
+  description: string
+  version: string
+  type: string  # hierarchical, flat, pipeline
+
+# Team coordinator configuration (top-level coordinator)
+coordinator:
+  name: string
+  description: string
+  llm:
+    provider: string
+    model: string
+    temperature: float
+    max_tokens: integer
+    api_key_env: string
+    base_url: string  # optional
+  
+  # Coordinator-specific prompts
+  prompts:
+    system_prompt:
+      template: string
+      variables: list[string]
+    decision_prompt:
+      template: string
+      variables: list[string]
+    coordination_prompt:
+      template: string
+      variables: list[string]
+  
+  # Coordinator decision-making configuration
+  routing:
+    strategy: string  # keyword_based, llm_based, rule_based, hybrid
+    fallback_team: string
+    confidence_threshold: float
+    max_decision_time: integer
+
+# Teams configuration (supervised teams)
+teams:
+  - name: string
+    description: string
+    supervisor:
+      name: string
+      config_file: string  # path to supervisor agent config
+      llm:
+        provider: string
+        model: string
+        temperature: float
+        max_tokens: integer
+        api_key_env: string
+        base_url: string  # optional
+      
+      # Supervisor-specific configuration
+      routing:
+        strategy: string
+        fallback_worker: string
+        confidence_threshold: float
+        max_decision_time: integer
+    
+    # Workers in this team
+    workers:
+      - name: string
+        role: string
+        config_file: string  # path to worker agent config
+        description: string
+        capabilities: list[string]
+        priority: integer  # for worker selection ordering
+        
+        # Worker-specific overrides (optional)
+        overrides:
+          llm:
+            provider: string  # optional - inherits from base config
+            model: string     # optional - inherits from base config
+            temperature: float  # optional - inherits from base config
+            max_tokens: integer  # optional - inherits from base config
+            api_key_env: string  # optional - inherits from base config
+            base_url: string     # optional - inherits from base config
+        
+        tools:
+          built_in: list[string]
+          custom: list
+        
+        memory:
+          enabled: boolean
+          shared_with_team: boolean
+          types:
+            semantic: boolean
+            episodic: boolean
+            procedural: boolean
+
+# Memory configuration for the hierarchical team
+memory:
+  enabled: boolean
+  provider: string
+  
+  # Hierarchical memory structure
+  levels:
+    coordinator: 
+      enabled: boolean
+      types:
+        semantic: boolean
+        episodic: boolean
+        procedural: boolean
+      storage:
+        backend: string
+        connection_string: string
+    
+    team:
+      enabled: boolean
+      shared_across_workers: boolean
+      types:
+        semantic: boolean
+        episodic: boolean
+        procedural: boolean
+    
+    worker:
+      enabled: boolean
+      individual: boolean
+      types:
+        semantic: boolean
+        episodic: boolean
+        procedural: boolean
+  
+  settings:
+    max_memory_size: integer
+    retention_days: integer
+    background_processing: boolean
+    memory_consolidation: boolean
+
+# Communication and coordination settings
+coordination:
+  # Inter-team communication
+  cross_team_communication: boolean
+  team_dependencies: list[string]
+  
+  # Task flow configuration
+  task_flow:
+    type: string  # sequential, parallel, conditional, pipeline
+    max_parallel_tasks: integer
+    timeout_per_task: integer
+    retry_strategy: string
+  
+  # Results aggregation
+  results:
+    aggregation_strategy: string  # merge, prioritize, vote, consensus
+    final_response_format: string
+    include_reasoning: boolean
+    include_metadata: boolean
+
+# Performance and monitoring
+performance:
+  monitoring:
+    enabled: boolean
+    metrics:
+      - response_time
+      - task_success_rate
+      - worker_utilization
+      - decision_accuracy
+      - communication_efficiency
+  
+  optimization:
+    enabled: boolean
+    auto_scaling: boolean
+    load_balancing: boolean
+    adaptive_routing: boolean
+
+# Deployment configuration
+deployment:
+  environment: string  # development, staging, production
+  scaling:
+    min_workers_per_team: integer
+    max_workers_per_team: integer
+    auto_scale: boolean
+  
+  security:
+    api_key_management: string
+    access_control: list[string]
+    audit_logging: boolean
+
+# Runtime configuration for hierarchical teams
+runtime:
+  max_iterations: integer
+  timeout_seconds: integer
+  retry_attempts: integer
+  debug_mode: boolean
+  
+  # Hierarchical-specific runtime settings
+  max_delegation_depth: integer
+  task_queue_size: integer
+  concurrent_tasks: integer
+  heartbeat_interval: integer

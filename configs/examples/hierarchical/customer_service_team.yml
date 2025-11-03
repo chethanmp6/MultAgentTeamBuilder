@@ -1,0 +1,367 @@
+# Customer Service Team Configuration
+# A hierarchical team for customer support with triage, specialists, and escalation
+team:
+  name: "Customer Service Team"
+  description: "Hierarchical customer service team with triage, specialized support, and escalation handling"
+  version: "1.0.0"
+  type: "hierarchical"
+
+# Team Coordinator Configuration
+coordinator:
+  name: "Service Coordinator"
+  description: "Coordinates customer service requests across specialized support teams"
+  
+  llm:
+    provider: "openai"
+    model: "gpt-4o-mini"
+    temperature: 0.4
+    max_tokens: 2000
+    api_key_env: "OPENAI_API_KEY"
+  
+  prompts:
+    system_prompt:
+      template: |
+        You are a Customer Service Coordinator managing support teams.
+        
+        Your teams specialize in:
+        - Triage: Initial assessment and routing of customer issues
+        - Technical Support: Technical problems and troubleshooting
+        - Account Support: Billing, account management, and administrative issues
+        - Escalation: Complex issues requiring senior attention
+        
+        Available Teams:
+        1. "triage_team" - Initial customer issue assessment and routing
+        2. "technical_team" - Technical support and troubleshooting
+        3. "account_team" - Billing and account management
+        4. "escalation_team" - Complex issue resolution and management
+        
+        Customer Service Strategy:
+        - Route all initial requests through triage_team for assessment
+        - Direct technical issues to technical_team
+        - Send billing/account issues to account_team
+        - Escalate complex/sensitive issues to escalation_team
+        
+        Prioritize customer satisfaction and efficient resolution.
+      variables: ["customer_context", "issue_priority"]
+    
+    decision_prompt:
+      template: |
+        Customer Issue: {user_input}
+        
+        Priority Level: {priority_level}
+        Customer Type: {customer_type}
+        
+        Analyze this customer service request and determine the appropriate team:
+        
+        Team Capabilities:
+        - triage_team: Issue classification, initial response, routing
+        - technical_team: Technical support, troubleshooting, bug resolution
+        - account_team: Billing, subscriptions, account changes
+        - escalation_team: Complex issues, VIP customers, complaints
+        
+        Consider:
+        1. What type of issue is this?
+        2. What level of expertise is required?
+        3. Is this a time-sensitive or high-priority issue?
+        4. Does this require specialized knowledge?
+        
+        Choose the most appropriate team for efficient resolution.
+      variables: ["user_input", "priority_level", "customer_type"]
+    
+    coordination_prompt:
+      template: |
+        Managing customer issue: {issue_description}
+        
+        Status across teams:
+        - Triage: {triage_status}
+        - Technical: {technical_status}
+        - Account: {account_status}
+        - Escalation: {escalation_status}
+        
+        Customer satisfaction priority: {satisfaction_level}
+        
+        Coordinate for optimal customer experience and resolution.
+      variables: ["issue_description", "triage_status", "technical_status", "account_status", "escalation_status", "satisfaction_level"]
+  
+  routing:
+    strategy: "hybrid"
+    fallback_team: "triage_team"
+    confidence_threshold: 0.75
+    max_decision_time: 20
+
+# Teams Configuration
+teams:
+  - name: "triage_team"
+    description: "Initial customer issue assessment and routing"
+    
+    supervisor:
+      name: "Triage Supervisor"
+      llm:
+        provider: "openai"
+        model: "gpt-4o-mini"
+        temperature: 0.3
+        max_tokens: 1500
+        api_key_env: "OPENAI_API_KEY"
+      routing:
+        strategy: "rule_based"
+        fallback_worker: "triage_specialist"
+        confidence_threshold: 0.8
+        max_decision_time: 15
+    
+    workers:
+      - name: "triage_specialist"
+        role: "triage"
+        config_file: "configs/examples/customer_support.yml"
+        description: "Assesses and routes customer issues efficiently"
+        capabilities:
+          - "issue_classification"
+          - "priority_assessment"
+          - "initial_response"
+          - "routing_decision"
+        priority: 1
+        
+        overrides:
+          llm:
+            temperature: 0.3
+            max_tokens: 1200
+
+  - name: "technical_team"
+    description: "Technical support and troubleshooting specialists"
+    
+    supervisor:
+      name: "Technical Supervisor"
+      llm:
+        provider: "openai"
+        model: "gpt-4o"
+        temperature: 0.2
+        max_tokens: 3000
+        api_key_env: "OPENAI_API_KEY"
+      routing:
+        strategy: "llm_based"
+        fallback_worker: "technical_support"
+        confidence_threshold: 0.8
+        max_decision_time: 25
+    
+    workers:
+      - name: "technical_support"
+        role: "technical_support"
+        config_file: "configs/examples/customer_support.yml"
+        description: "General technical support and troubleshooting"
+        capabilities:
+          - "troubleshooting"
+          - "technical_guidance"
+          - "bug_diagnosis"
+          - "solution_implementation"
+        priority: 1
+        
+        overrides:
+          llm:
+            temperature: 0.2
+            max_tokens: 3500
+      
+      - name: "product_specialist"
+        role: "product_expert"
+        config_file: "configs/examples/customer_support.yml"
+        description: "Product-specific expertise and advanced troubleshooting"
+        capabilities:
+          - "product_expertise"
+          - "advanced_troubleshooting"
+          - "feature_guidance"
+          - "integration_support"
+        priority: 2
+        
+        overrides:
+          llm:
+            temperature: 0.1
+            max_tokens: 4000
+
+  - name: "account_team"
+    description: "Account management and billing support specialists"
+    
+    supervisor:
+      name: "Account Supervisor"
+      llm:
+        provider: "openai"
+        model: "gpt-4o-mini"
+        temperature: 0.3
+        max_tokens: 2000
+        api_key_env: "OPENAI_API_KEY"
+      routing:
+        strategy: "keyword_based"
+        fallback_worker: "account_manager"
+        confidence_threshold: 0.7
+        max_decision_time: 20
+    
+    workers:
+      - name: "account_manager"
+        role: "account_support"
+        config_file: "configs/examples/customer_support.yml"
+        description: "Account management and general billing support"
+        capabilities:
+          - "account_management"
+          - "billing_support"
+          - "subscription_changes"
+          - "payment_processing"
+        priority: 1
+        
+        overrides:
+          llm:
+            temperature: 0.3
+            max_tokens: 2000
+      
+      - name: "billing_specialist"
+        role: "billing_expert"
+        config_file: "configs/examples/customer_support.yml"
+        description: "Specialized billing and financial issue resolution"
+        capabilities:
+          - "complex_billing"
+          - "financial_reconciliation"
+          - "payment_disputes"
+          - "pricing_questions"
+        priority: 2
+
+  - name: "escalation_team"
+    description: "Complex issue resolution and senior support"
+    
+    supervisor:
+      name: "Escalation Supervisor"
+      llm:
+        provider: "openai"
+        model: "gpt-4o"
+        temperature: 0.4
+        max_tokens: 3500
+        api_key_env: "OPENAI_API_KEY"
+      routing:
+        strategy: "llm_based"
+        fallback_worker: "escalation_manager"
+        confidence_threshold: 0.8
+        max_decision_time: 30
+    
+    workers:
+      - name: "escalation_manager"
+        role: "escalation_handler"
+        config_file: "configs/examples/customer_support.yml"
+        description: "Handles complex escalations and sensitive issues"
+        capabilities:
+          - "escalation_management"
+          - "conflict_resolution"
+          - "executive_communication"
+          - "policy_exceptions"
+        priority: 1
+        
+        overrides:
+          llm:
+            temperature: 0.4
+            max_tokens: 4000
+      
+      - name: "vip_support"
+        role: "vip_specialist"
+        config_file: "configs/examples/customer_support.yml"
+        description: "Specialized support for VIP and enterprise customers"
+        capabilities:
+          - "vip_support"
+          - "enterprise_relations"
+          - "custom_solutions"
+          - "executive_liaison"
+        priority: 2
+
+# Memory Configuration
+memory:
+  enabled: true
+  provider: "langmem"
+  
+  levels:
+    coordinator:
+      enabled: true
+      types:
+        semantic: true
+        episodic: true
+        procedural: true
+      storage:
+        backend: "memory"
+    
+    team:
+      enabled: true
+      shared_across_workers: true
+      types:
+        semantic: true
+        episodic: true
+        procedural: true
+    
+    worker:
+      enabled: true
+      individual: false
+      types:
+        semantic: true
+        episodic: true
+        procedural: true
+  
+  settings:
+    max_memory_size: 20000
+    retention_days: 30
+    background_processing: true
+    memory_consolidation: true
+
+# Coordination Configuration
+coordination:
+  cross_team_communication: true
+  team_dependencies:
+    - "technical_team may escalate to escalation_team"
+    - "account_team may escalate to escalation_team"
+    - "triage_team routes to all other teams"
+  
+  task_flow:
+    type: "conditional"
+    max_parallel_tasks: 4
+    timeout_per_task: 300
+    retry_strategy: "linear"
+  
+  results:
+    aggregation_strategy: "prioritize"
+    final_response_format: "summary"
+    include_reasoning: false
+    include_metadata: true
+
+# Performance Configuration
+performance:
+  monitoring:
+    enabled: true
+    metrics:
+      - "response_time"
+      - "resolution_rate"
+      - "customer_satisfaction"
+      - "escalation_rate"
+      - "first_contact_resolution"
+  
+  optimization:
+    enabled: true
+    auto_scaling: true
+    load_balancing: true
+    adaptive_routing: true
+
+# Deployment Configuration
+deployment:
+  environment: "production"
+  scaling:
+    min_workers_per_team: 1
+    max_workers_per_team: 5
+    auto_scale: true
+  
+  security:
+    api_key_management: "environment"
+    access_control: 
+      - "customer_data_protection"
+      - "payment_info_security"
+    audit_logging: true
+
+# Runtime Configuration
+runtime:
+  max_iterations: 50
+  timeout_seconds: 600
+  retry_attempts: 2
+  debug_mode: false
+  
+  max_delegation_depth: 3
+  task_queue_size: 200
+  concurrent_tasks: 8
+  heartbeat_interval: 30

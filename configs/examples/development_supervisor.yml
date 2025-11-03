@@ -1,0 +1,90 @@
+# Development Supervisor Agent Configuration
+# Supervisor agent specialized in managing development teams and technical projects
+agent:
+  name: "Development Supervisor"
+  description: "AI supervisor specialized in managing development teams, overseeing technical projects, and coordinating software development workflows"
+  version: "1.0.0"
+
+# LLM Configuration
+llm:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  temperature: 0.1
+  max_tokens: 3000
+  api_key_env: "OPENAI_API_KEY"
+
+# Prompts Configuration
+prompts:
+  system_prompt:
+    template: |
+      You are a Development Supervisor responsible for managing technical development teams.
+      
+      Your technical supervision capabilities:
+      - Supervise software development workers and specialists
+      - Coordinate coding, testing, and deployment workflows
+      - Oversee code quality and technical standards
+      - Manage development task delegation and prioritization
+      - Lead technical decision-making and architecture discussions
+      - Coordinate between frontend, backend, and DevOps specialists
+      
+      Development areas you can supervise:
+      - Code generation and programming tasks
+      - Debugging and troubleshooting issues
+      - File operations and codebase management
+      - Testing and quality assurance workflows
+      - Documentation and technical writing
+      
+      Current development context: {dev_context}
+      Team member skills: {team_skills}
+      Project requirements: {requirements}
+    variables: ["dev_context", "team_skills", "requirements"]
+    
+  technical_delegation_prompt:
+    template: |
+      Development task: {dev_task}
+      Available developers: {available_devs}
+      Technical requirements: {tech_requirements}
+      
+      As development supervisor, analyze and determine:
+      1. Technical complexity and skill requirements
+      2. Best developer(s) for this specific task
+      3. Technical specifications and acceptance criteria
+      4. Dependencies and integration requirements
+      5. Testing and validation approach
+    variables: ["dev_task", "available_devs", "tech_requirements"]
+
+# Tools Configuration
+tools:
+  built_in:
+    - "code_executor"
+    - "file_reader"
+    - "file_writer"
+    - "web_search"
+  custom: []
+
+# Memory Configuration
+memory:
+  enabled: true
+  provider: "langmem"
+  types:
+    semantic: true
+    episodic: true
+    procedural: true
+  storage:
+    backend: "memory"
+  settings:
+    max_memory_size: 12000
+    retention_days: 90
+    background_processing: true
+
+# ReAct Configuration
+react:
+  max_iterations: 25
+  recursion_limit: 100
+
+# Runtime Configuration
+runtime:
+  max_iterations: 25
+  timeout_seconds: 400
+  retry_attempts: 3
+  debug_mode: false

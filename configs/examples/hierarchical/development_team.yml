@@ -1,0 +1,331 @@
+# Software Development Team Configuration
+# A hierarchical team for software development with analysis, coding, and testing
+team:
+  name: "Software Development Team"
+  description: "Hierarchical team for software development with requirements analysis, coding, and testing"
+  version: "1.0.0"
+  type: "hierarchical"
+
+# Team Coordinator Configuration
+coordinator:
+  name: "Development Coordinator"
+  description: "Coordinates software development tasks across specialized teams"
+  
+  llm:
+    provider: "openai"
+    model: "gpt-4o"
+    temperature: 0.2
+    max_tokens: 3000
+    api_key_env: "OPENAI_API_KEY"
+  
+  prompts:
+    system_prompt:
+      template: |
+        You are a Development Coordinator managing software development teams.
+        
+        Your teams specialize in:
+        - Requirements: Analysis, planning, and specification
+        - Development: Code implementation and architecture
+        - Quality Assurance: Testing, review, and validation
+        
+        Available Teams:
+        1. "requirements_team" - Business analysts and requirement specialists
+        2. "development_team" - Software engineers and architects
+        3. "qa_team" - Quality assurance and testing specialists
+        
+        Development Workflow:
+        - Route planning/analysis tasks to requirements_team
+        - Send coding/implementation to development_team
+        - Direct testing/review tasks to qa_team
+        - Coordinate full SDLC across teams
+        
+        Consider complexity, technical requirements, and project phase.
+      variables: ["project_context", "development_phase"]
+    
+    decision_prompt:
+      template: |
+        Development Task: {user_input}
+        
+        Analyze this development request and determine the appropriate team:
+        
+        Team Capabilities:
+        - requirements_team: Requirements analysis, planning, specification
+        - development_team: Code implementation, architecture, debugging
+        - qa_team: Testing, code review, quality assurance
+        
+        Consider:
+        1. What phase of development is this?
+        2. Does it require analysis, implementation, or testing?
+        3. What level of technical complexity is involved?
+        4. Are there dependencies on other teams?
+        
+        Choose the best team and explain your development strategy.
+      variables: ["user_input", "project_status"]
+    
+    coordination_prompt:
+      template: |
+        Coordinating development task: {task_description}
+        
+        Project Status:
+        - Requirements: {requirements_status}
+        - Development: {dev_status}
+        - Quality Assurance: {qa_status}
+        
+        Determine next development phase and team coordination.
+      variables: ["task_description", "requirements_status", "dev_status", "qa_status"]
+  
+  routing:
+    strategy: "hybrid"
+    fallback_team: "requirements_team"
+    confidence_threshold: 0.8
+    max_decision_time: 45
+
+# Teams Configuration
+teams:
+  - name: "requirements_team"
+    description: "Requirements analysis and project planning specialists"
+    
+    supervisor:
+      name: "Requirements Supervisor"
+      llm:
+        provider: "openai"
+        model: "gpt-4o-mini"
+        temperature: 0.3
+        max_tokens: 2000
+        api_key_env: "OPENAI_API_KEY"
+      routing:
+        strategy: "keyword_based"
+        fallback_worker: "business_analyst"
+        confidence_threshold: 0.7
+        max_decision_time: 30
+    
+    workers:
+      - name: "business_analyst"
+        role: "analyst"
+        config_file: "configs/examples/research_agent.yml"
+        description: "Analyzes business requirements and creates specifications"
+        capabilities:
+          - "requirements_analysis"
+          - "specification_writing"
+          - "stakeholder_analysis"
+          - "process_modeling"
+        priority: 1
+        
+        overrides:
+          llm:
+            temperature: 0.2
+            max_tokens: 3000
+      
+      - name: "system_architect"
+        role: "architect"
+        config_file: "configs/examples/coding_assistant.yml"
+        description: "Designs system architecture and technical specifications"
+        capabilities:
+          - "system_design"
+          - "architecture_planning"
+          - "technical_specification"
+          - "technology_selection"
+        priority: 2
+
+  - name: "development_team"
+    description: "Software development and implementation specialists"
+    
+    supervisor:
+      name: "Development Supervisor"
+      llm:
+        provider: "openai"
+        model: "gpt-4o"
+        temperature: 0.1
+        max_tokens: 4000
+        api_key_env: "OPENAI_API_KEY"
+      routing:
+        strategy: "llm_based"
+        fallback_worker: "senior_developer"
+        confidence_threshold: 0.8
+        max_decision_time: 30
+    
+    workers:
+      - name: "senior_developer"
+        role: "developer"
+        config_file: "configs/examples/coding_assistant.yml"
+        description: "Experienced developer for complex implementations"
+        capabilities:
+          - "code_implementation"
+          - "architecture_development"
+          - "code_review"
+          - "mentoring"
+        priority: 1
+        
+        overrides:
+          llm:
+            temperature: 0.1
+            max_tokens: 5000
+      
+      - name: "frontend_developer"
+        role: "frontend_developer"
+        config_file: "configs/examples/coding_assistant.yml"
+        description: "Specialized in frontend development and UI"
+        capabilities:
+          - "frontend_development"
+          - "ui_implementation"
+          - "user_experience"
+          - "responsive_design"
+        priority: 2
+        
+        overrides:
+          llm:
+            temperature: 0.2
+      
+      - name: "backend_developer"
+        role: "backend_developer"
+        config_file: "configs/examples/coding_assistant.yml"
+        description: "Specialized in backend services and APIs"
+        capabilities:
+          - "backend_development"
+          - "api_development"
+          - "database_design"
+          - "server_architecture"
+        priority: 2
+
+  - name: "qa_team"
+    description: "Quality assurance and testing specialists"
+    
+    supervisor:
+      name: "QA Supervisor"
+      llm:
+        provider: "openai"
+        model: "gpt-4o-mini"
+        temperature: 0.3
+        max_tokens: 2500
+        api_key_env: "OPENAI_API_KEY"
+      routing:
+        strategy: "rule_based"
+        fallback_worker: "qa_engineer"
+        confidence_threshold: 0.7
+        max_decision_time: 25
+    
+    workers:
+      - name: "qa_engineer"
+        role: "qa_engineer"
+        config_file: "configs/examples/coding_assistant.yml"
+        description: "Quality assurance engineer for testing and validation"
+        capabilities:
+          - "test_planning"
+          - "test_execution"
+          - "bug_reporting"
+          - "quality_validation"
+        priority: 1
+        
+        overrides:
+          llm:
+            temperature: 0.2
+            max_tokens: 3000
+      
+      - name: "test_automation"
+        role: "automation_engineer"
+        config_file: "configs/examples/coding_assistant.yml"
+        description: "Automated testing and CI/CD specialist"
+        capabilities:
+          - "test_automation"
+          - "ci_cd_setup"
+          - "performance_testing"
+          - "integration_testing"
+        priority: 2
+
+# Memory Configuration
+memory:
+  enabled: true
+  provider: "langmem"
+  
+  levels:
+    coordinator:
+      enabled: true
+      types:
+        semantic: true
+        episodic: true
+        procedural: true
+      storage:
+        backend: "memory"
+    
+    team:
+      enabled: true
+      shared_across_workers: true
+      types:
+        semantic: true
+        episodic: true
+        procedural: true
+    
+    worker:
+      enabled: true
+      individual: true
+      types:
+        semantic: true
+        episodic: true
+        procedural: true
+  
+  settings:
+    max_memory_size: 30000
+    retention_days: 120
+    background_processing: true
+    memory_consolidation: true
+
+# Coordination Configuration
+coordination:
+  cross_team_communication: true
+  team_dependencies:
+    - "development_team depends on requirements_team"
+    - "qa_team depends on development_team"
+  
+  task_flow:
+    type: "sequential"
+    max_parallel_tasks: 2
+    timeout_per_task: 600
+    retry_strategy: "exponential"
+  
+  results:
+    aggregation_strategy: "prioritize"
+    final_response_format: "detailed"
+    include_reasoning: true
+    include_metadata: true
+
+# Performance Configuration
+performance:
+  monitoring:
+    enabled: true
+    metrics:
+      - "response_time"
+      - "code_quality"
+      - "test_coverage"
+      - "bug_detection_rate"
+      - "development_velocity"
+  
+  optimization:
+    enabled: true
+    auto_scaling: false
+    load_balancing: true
+    adaptive_routing: true
+
+# Deployment Configuration
+deployment:
+  environment: "development"
+  scaling:
+    min_workers_per_team: 1
+    max_workers_per_team: 4
+    auto_scale: false
+  
+  security:
+    api_key_management: "environment"
+    access_control: []
+    audit_logging: true
+
+# Runtime Configuration
+runtime:
+  max_iterations: 150
+  timeout_seconds: 1200
+  retry_attempts: 3
+  debug_mode: false
+  
+  max_delegation_depth: 4
+  task_queue_size: 100
+  concurrent_tasks: 3
+  heartbeat_interval: 90

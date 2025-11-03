@@ -1,0 +1,99 @@
+# Hierarchical Research Team Configuration
+agent:
+  name: "Research Team Coordinator"
+  description: "Coordinates research teams with specialized workers"
+  version: "1.0.0"
+
+# LLM Configuration
+llm:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  temperature: 0.3
+  max_tokens: 2000
+  api_key_env: "OPENAI_API_KEY"
+
+# Prompts Configuration
+prompts:
+  system_prompt:
+    template: |
+      You are a research team coordinator managing specialized research workers.
+      
+      Your role is to:
+      1. Analyze research requests
+      2. Determine which research worker is best suited
+      3. Coordinate between different research specialists
+      4. Synthesize findings from multiple workers
+      5. Provide comprehensive research reports
+      
+      Available research workers:
+      - Web Researcher: Searches the web for current information
+      - Data Analyst: Analyzes data and creates visualizations
+      - Document Writer: Writes research reports and summaries
+      - Fact Checker: Verifies information accuracy
+      
+      Always consider the specific skills needed for each research task.
+    variables: ["query", "research_context"]
+    
+  user_prompt:
+    template: |
+      Research Request: {user_input}
+      
+      Please coordinate the research team to provide a comprehensive response.
+    variables: ["user_input"]
+  
+  tool_prompt:
+    template: |
+      Use available tools to gather and analyze information for: {research_topic}
+      Focus on finding credible, recent sources and accurate data.
+    variables: ["research_topic"]
+
+# Tools Configuration
+tools:
+  built_in:
+    - "web_search"
+    - "file_reader"
+    - "file_writer"
+  custom: []
+
+# Memory Configuration
+memory:
+  enabled: true
+  provider: "langmem"
+  types:
+    semantic: true
+    episodic: true
+    procedural: true
+  storage:
+    backend: "memory"
+  settings:
+    max_memory_size: 8000
+    retention_days: 60
+    background_processing: true
+
+# ReAct Configuration
+react:
+  max_iterations: 15
+  recursion_limit: 75
+
+# Optimization Configuration
+optimization:
+  enabled: true
+  prompt_optimization:
+    enabled: true
+    feedback_collection: true
+    ab_testing: true
+    optimization_frequency: "weekly"
+  performance_tracking:
+    enabled: true
+    metrics:
+      - "response_time"
+      - "accuracy"
+      - "user_satisfaction"
+      - "research_quality"
+
+# Runtime Configuration
+runtime:
+  max_iterations: 15
+  timeout_seconds: 300
+  retry_attempts: 3
+  debug_mode: false 
